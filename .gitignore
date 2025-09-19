@@ -5,6 +5,7 @@ __pycache__/
 data/
 test/
 test*
+.env
 # C extensions
 *.so
 
