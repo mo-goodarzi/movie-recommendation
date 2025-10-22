@@ -26,7 +26,10 @@ class movie_recommender:
             title = match.metadata.get('title')
             score = match.score
             imdb_id = match.metadata.get('imdb_id')
-            item_id  = match.metadata.get('item_id') 
+            # Convert imdb_id to zero-padded string format (7 digits)
+            if imdb_id:
+                imdb_id = str(int(imdb_id)).zfill(7)
+            item_id  = match.metadata.get('item_id')
             if title and title not in [t for t, _,_,_ in recommendations]:
                 recommendations.append((title, score,imdb_id, item_id))
 

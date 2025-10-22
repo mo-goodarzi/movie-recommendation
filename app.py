@@ -109,7 +109,7 @@ if search_button and selected_movie:
             cols = st.columns(3)
             for idx, (title, score, imdb_id, item_id) in enumerate(recommendations):
                 with cols[idx % 3]:
-                    # Create a card-like container with custom styling
+                    # Create a card-like container with fixed size and custom styling
                     with st.container():
                         st.markdown(
                             f"""
@@ -120,24 +120,41 @@ if search_button and selected_movie:
                                 margin: 10px 0;
                                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                                 border: 1px solid #CBD5E0;
+                                height: 250px;
+                                width: 100%;
+                                position: relative;
+                                display: flex;
+                                flex-direction: column;
                             ">
-                                <h3 style="
-                                    color: #2D3748;
-                                    margin-bottom: 10px;
-                                    font-size: 1.2rem;
-                                ">{idx + 1}. {title}</h3>
+                                <div style="flex-grow: 1;">
+                                    <h3 style="
+                                        color: #2D3748;
+                                        margin-bottom: 10px;
+                                        font-size: 1.2rem;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                    ">{idx + 1}. {title}</h3>
+                                    <div style="
+                                        background-color: #4A5568;
+                                        height: 4px;
+                                        width: {int(score * 100)}%;
+                                        border-radius: 2px;
+                                        margin: 10px 0;
+                                    "></div>
+                                    <p style="
+                                        color: #555;
+                                        font-size: 0.9rem;
+                                        margin-bottom: 15px;
+                                    ">Similarity Score: {score:.2f}</p>
+                                </div>
                                 <div style="
-                                    background-color: #4A5568;
-                                    height: 4px;
-                                    width: {int(score * 100)}%;
-                                    border-radius: 2px;
-                                    margin: 10px 0;
-                                "></div>
-                                <p style="
-                                    color: #555;
-                                    font-size: 0.9rem;
-                                ">Similarity Score: {score:.2f}</p>
-                                {f'<a href="https://www.imdb.com/title/tt0{int(imdb_id)}" target="_blank" style="text-decoration: none;"><div style="background-color: #f5c518; color: #000; padding: 8px 12px; border-radius: 5px; text-align: center; font-weight: bold; margin-top: 10px;">View on IMDb</div></a>' if imdb_id else ''}
+                                    position: absolute;
+                                    bottom: 20px;
+                                    left: 20px;
+                                    right: 20px;
+                                ">
+                                    {f'<a href="https://www.imdb.com/title/tt{imdb_id}" target="_blank" style="text-decoration: none;"><div style="background-color: #f5c518; color: #000; padding: 8px 12px; border-radius: 5px; text-align: center; font-weight: bold;">View on IMDb</div></a>' if imdb_id else ''}
+                                </div>
                             </div>
                             """,
                             unsafe_allow_html=True
