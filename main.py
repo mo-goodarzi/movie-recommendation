@@ -1,16 +1,51 @@
-import pandas as pd
+import sqlite3
 import numpy as np
+import os
+from dotenv import load_dotenv
 from utils.utils import create_embeddings, query_embedding
 
+load_dotenv()
+
 class movie_recommender:
-    def __init__(self):
-        self.database = pd.read_json("data/merged_data_untill_1990.json", lines=True)
+    def __init__(self, db_path=None):
+        if db_path is None:
+            db_path = os.getenv('SQLITE_DB_PATH', 'data/movies.db')
+        self.db_path = db_path
         self.create_embeddings = create_embeddings
         self.query_embedding = query_embedding
 
+        # Verify database exists
+        if not os.path.exists(self.db_path):
+            raise FileNotFoundError(f"Database not found at {self.db_path}. Run utils/migrate_to_sqlite.py first.")
+
+    def _get_connection(self):
+        """Get a database connection."""
+        return sqlite3.connect(self.db_path)
+
+    def get_movie_texts(self, film_name):
+        """Get all text entries for a given movie title."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        # Query to get all text entries for the movie
+        cursor.execute("""
+            SELECT mt.txt
+            FROM movies m
+            JOIN movie_texts mt ON m.item_id = mt.item_id
+            WHERE m.title = ?
+        """, (film_name,))
+
+        texts = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return texts
+
     def recommend(self, film_name, top_k=10):
-        film = self.database[self.database["title"] == film_name]
-        film_list=[row["txt"] for _,row in film.iterrows()]
+        # Get all text entries for the movie from database
+        film_list = self.get_movie_texts(film_name)
+
+        if not film_list:
+            return []
+
         # now we create embeddings for these reviews
         film_list_embeddings = self.create_embeddings(film_list)
 

@@ -1,11 +1,14 @@
 import streamlit as st
-import pandas as pd
+import sqlite3
 import requests
 import os
 from dotenv import load_dotenv
 from main import movie_recommender
 
 load_dotenv()
+
+# Get database path from environment
+DB_PATH = os.getenv('SQLITE_DB_PATH', 'data/movies.db')
 
 # Set page config
 st.set_page_config(
@@ -80,10 +83,30 @@ recommender = get_recommender()
 # Load the movie database for the dropdown
 @st.cache_data
 def get_movie_list():
-    database = pd.read_json("data/merged_data_untill_1990.json", lines=True)
-    return sorted(database['title'].unique().tolist())
+    """Get sorted list of all movie titles from SQLite database."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT title FROM movies ORDER BY title")
+    movies = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return movies
 
 movie_list = get_movie_list()
+
+# Function to get movie IMDb ID from database
+@st.cache_data
+def get_movie_imdb_id(movie_title):
+    """Get IMDb ID for a movie from the SQLite database."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT imdb_id FROM movies WHERE title = ? LIMIT 1", (movie_title,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result and result[0]:
+        # Convert to zero-padded string format (7 digits)
+        return str(int(result[0])).zfill(7)
+    return None
 
 # Function to get movie poster from OMDb API
 @st.cache_data
@@ -129,7 +152,81 @@ recommendations_container = st.container()
 # Get recommendations when the search button is clicked
 if search_button and selected_movie:
     with recommendations_container:
-        st.subheader("Recommended Movies")
+        # Display the chosen movie in a special card
+        st.markdown("<h2 style='color: #2D3748; font-size: 1.5rem; font-weight: 500; margin-bottom: 1rem; margin-top: 2rem;'>Your Selected Movie</h2>", unsafe_allow_html=True)
+
+        # Get chosen movie details
+        chosen_movie_imdb_id = get_movie_imdb_id(selected_movie)
+        chosen_movie_poster = get_movie_poster(chosen_movie_imdb_id) if chosen_movie_imdb_id else None
+
+        # Create centered column for chosen movie
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if chosen_movie_poster:
+                st.markdown(
+                    f"""
+                    <div style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        border-radius: 15px;
+                        padding: 20px;
+                        margin: 10px 0 30px 0;
+                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+                        border: 3px solid #f5c518;
+                    ">
+                        <h3 style="
+                            color: white;
+                            text-align: center;
+                            margin-bottom: 15px;
+                            font-size: 1.3rem;
+                            font-weight: bold;
+                        ">{selected_movie}</h3>
+                        <div style="
+                            width: 100%;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            margin-bottom: 15px;
+                        ">
+                            <img src="{chosen_movie_poster}" style="
+                                max-width: 100%;
+                                max-height: 450px;
+                                object-fit: contain;
+                                border-radius: 10px;
+                                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+                            " alt="{selected_movie} poster">
+                        </div>
+                        {f'<a href="https://www.imdb.com/title/tt{chosen_movie_imdb_id}" target="_blank" style="text-decoration: none;"><div style="background-color: #f5c518; color: #000; padding: 12px 20px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1rem; margin-top: 10px;">View on IMDb</div></a>' if chosen_movie_imdb_id else ''}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    f"""
+                    <div style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        border-radius: 15px;
+                        padding: 30px;
+                        margin: 10px 0 30px 0;
+                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+                        border: 3px solid #f5c518;
+                        text-align: center;
+                    ">
+                        <h3 style="
+                            color: white;
+                            font-size: 1.5rem;
+                            font-weight: bold;
+                            margin-bottom: 20px;
+                        ">{selected_movie}</h3>
+                        <p style="color: white; font-size: 1rem; margin-bottom: 20px;">Poster not available</p>
+                        {f'<a href="https://www.imdb.com/title/tt{chosen_movie_imdb_id}" target="_blank" style="text-decoration: none;"><div style="background-color: #f5c518; color: #000; padding: 12px 20px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1rem; display: inline-block;">View on IMDb</div></a>' if chosen_movie_imdb_id else ''}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+        # Recommendations section
+        st.markdown("<h2 style='color: #2D3748; font-size: 1.5rem; font-weight: 500; margin-bottom: 1rem; margin-top: 2rem;'>Recommended Movies Based on Your Selection</h2>", unsafe_allow_html=True)
         with st.spinner('Finding recommendations...'):
             recommendations = recommender.recommend(selected_movie, top_k=num_recommendations)
             
