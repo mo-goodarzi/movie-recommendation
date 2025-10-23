@@ -28,13 +28,13 @@ df = pd.read_json(path_or_buf=os.getenv("DATABASE_PATH"), lines=True)
 
 # insert data to pinecone in batches
 # for batch in np.array_split(df, len(df) / batch_limit):
-for batch in np.array_split(df.iloc[6435:], len(df.iloc[6435:]) / batch_limit):
+for batch in np.array_split(df.iloc[20176:], len(df.iloc[20176:]) / batch_limit):
     metadatas = [
         {
             "item_id": row["item_id"],
             "title": row["title"],
             "year": row["year"],
-            "text": row["txt"],
+            # "text": row["txt"],
             "directed_by": row["directedBy"],
             "stars": list(row["starring"].split(", ")),
             "average_rating": row["avgRating"],
