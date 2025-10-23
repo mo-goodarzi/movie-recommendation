@@ -2,6 +2,10 @@
 
 A semantic movie recommendation system that uses OpenAI embeddings and Pinecone vector search to find similar films based on review content.
 
+## Live Demo
+
+**Try the app here:** [https://movie-recommendation-based-op.streamlit.app/](https://movie-recommendation-based-op.streamlit.app/)
+
 ## Features
 
 - Semantic search based on movie reviews
