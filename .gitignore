@@ -2,7 +2,9 @@
 __pycache__/
 *.py[codz]
 *$py.class
-data/
+# Ignore data folder contents except the database
+data/*
+!data/movies.db
 test/
 test*
 .env

@@ -108,16 +108,16 @@ def get_movie_imdb_id(movie_title):
         return str(int(result[0])).zfill(7)
     return None
 
-# Function to get movie poster from OMDb API
+# Function to get movie data from OMDb API
 @st.cache_data
-def get_movie_poster(imdb_id):
-    """Fetch movie poster URL from OMDb API"""
+def get_movie_data(imdb_id):
+    """Fetch movie data (poster and rating) from OMDb API"""
     if not imdb_id:
-        return None
+        return None, None
 
     api_key = os.getenv("OMDB_API_KEY")
     if not api_key:
-        return None
+        return None, None
 
     try:
         url = f"http://www.omdbapi.com/?i=tt{imdb_id}&apikey={api_key}"
@@ -125,11 +125,22 @@ def get_movie_poster(imdb_id):
         if response.status_code == 200:
             data = response.json()
             poster_url = data.get('Poster')
-            if poster_url and poster_url != 'N/A':
-                return poster_url
+            imdb_rating = data.get('imdbRating')
+
+            poster = poster_url if poster_url and poster_url != 'N/A' else None
+            rating = imdb_rating if imdb_rating and imdb_rating != 'N/A' else None
+
+            return poster, rating
     except:
         pass
-    return None
+    return None, None
+
+# Legacy function for backwards compatibility
+@st.cache_data
+def get_movie_poster(imdb_id):
+    """Fetch movie poster URL from OMDb API"""
+    poster, _ = get_movie_data(imdb_id)
+    return poster
 
 # Create the input section
 st.markdown("<h2 style='color: #2D3748; font-size: 1.5rem; font-weight: 500; margin-bottom: 1rem;'>Select a Movie</h2>", unsafe_allow_html=True)
@@ -157,7 +168,7 @@ if search_button and selected_movie:
 
         # Get chosen movie details
         chosen_movie_imdb_id = get_movie_imdb_id(selected_movie)
-        chosen_movie_poster = get_movie_poster(chosen_movie_imdb_id) if chosen_movie_imdb_id else None
+        chosen_movie_poster, chosen_movie_rating = get_movie_data(chosen_movie_imdb_id) if chosen_movie_imdb_id else (None, None)
 
         # Create centered column for chosen movie
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -180,6 +191,7 @@ if search_button and selected_movie:
                             font-size: 1.3rem;
                             font-weight: bold;
                         ">{selected_movie}</h3>
+                        {f'<div style="text-align: center; margin-bottom: 15px;"><span style="background-color: #f5c518; color: #000; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">⭐ {chosen_movie_rating}/10</span></div>' if chosen_movie_rating else ''}
                         <div style="
                             width: 100%;
                             display: flex;
@@ -218,6 +230,7 @@ if search_button and selected_movie:
                             font-weight: bold;
                             margin-bottom: 20px;
                         ">{selected_movie}</h3>
+                        {f'<div style="margin-bottom: 20px;"><span style="background-color: #f5c518; color: #000; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">⭐ {chosen_movie_rating}/10</span></div>' if chosen_movie_rating else ''}
                         <p style="color: white; font-size: 1rem; margin-bottom: 20px;">Poster not available</p>
                         {f'<a href="https://www.imdb.com/title/tt{chosen_movie_imdb_id}" target="_blank" style="text-decoration: none;"><div style="background-color: #f5c518; color: #000; padding: 12px 20px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1rem; display: inline-block;">View on IMDb</div></a>' if chosen_movie_imdb_id else ''}
                     </div>
@@ -234,8 +247,8 @@ if search_button and selected_movie:
             cols = st.columns(4)
             for idx, (title, score, imdb_id, item_id) in enumerate(recommendations):
                 with cols[idx % 4]:
-                    # Get poster URL
-                    poster_url = get_movie_poster(imdb_id)
+                    # Get poster URL and rating
+                    poster_url, imdb_rating = get_movie_data(imdb_id)
 
                     # Create a card-like container with poster
                     with st.container():
@@ -284,6 +297,7 @@ if search_button and selected_movie:
                                             display: block;
                                         " alt="{title} poster">
                                     </div>
+                                    {f'<div style="text-align: center; margin: 10px 0;"><span style="background-color: #f5c518; color: #000; padding: 6px 12px; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">⭐ {imdb_rating}</span></div>' if imdb_rating else ''}
                                     <div style="
                                         background-color: #4A5568;
                                         height: 4px;
@@ -342,6 +356,7 @@ if search_button and selected_movie:
                                         ">
                                             <p style="color: #555; font-size: 0.9rem;">No poster available</p>
                                         </div>
+                                        {f'<div style="text-align: center; margin: 10px 0;"><span style="background-color: #f5c518; color: #000; padding: 6px 12px; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">⭐ {imdb_rating}</span></div>' if imdb_rating else ''}
                                         <div style="
                                             background-color: #4A5568;
                                             height: 4px;
